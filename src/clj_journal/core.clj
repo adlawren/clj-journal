@@ -140,6 +140,27 @@
            (NoteTree. (:note (first note-trees)) migrated-children)
            (migrate-note-trees (rest note-trees))))))))
 
+;; TODO: try to leverage the NoteTree data structure instead?
+(defn update-uncompleted-task-lines [note-files]
+  (loop [note-files note-files]
+    (if (not (empty? note-files))
+      (do
+        (let [note-file (first note-files)]
+          (spit
+           note-file
+           (str
+            (clojure.string/join
+             \newline
+             (map
+              (fn [l]
+                (clojure.string/replace
+                 l
+                 (re-pattern
+                  (str leading-whitespace-regex-str "\\*" trailing-whitespace-regex-str))
+                 (fn [s] (clojure.string/replace s "*" ">"))))
+              (clojure.string/split (slurp note-file) #"\n"))) \newline)))
+        (recur (rest note-files))))))
+
 ;; TODO: update migrated files
 (defn migrate [note-files target-file]
   (spit
@@ -155,7 +176,8 @@
           (parse-note-trees
            (filter-bullets
             (parse-notes (clojure.string/split (slurp f) #"\n")))))
-        note-files)))))))
+        note-files))))))
+  (update-uncompleted-task-lines note-files))
 
 (defn migrate-day [path calendar-inst]
   (let [month
@@ -224,6 +246,7 @@
   [["-m" "--migrate-day"] ["-M" "--migrate-month"] ["-h" "--help"]])
 
 ;; TODO
+;; (System/getProperty "user.dir") ;; cwd
 (def target-dir (str (System/getenv "HOME") "/test-dir"))
 
 (defn -main [& args]
