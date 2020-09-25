@@ -19,8 +19,16 @@
               (clojure.java.io/copy f target-f))))
         (recur (rest src-files))))))
 
+(defn sorted-files [dir-f]
+  (sort
+   (fn [f1 f2] (compare (.getPath f1) (.getPath f2)))
+   (.listFiles dir-f)))
+
 (defn cmp-dirs [dir1-f dir2-f]
-  (loop [files1 (.listFiles dir1-f) files2 (.listFiles dir2-f)]
+  (loop [files1
+         (sorted-files dir1-f)
+         files2
+         (sorted-files dir2-f)]
     (if
         (or (not (empty? files1)) (not (empty? files2)))
       (let [file1 (first files1) file2 (first files2)]
@@ -60,11 +68,11 @@
   (testing
       "migrate-day"
     (let
-        [inst (java.util.Calendar/getInstance)]
-      (.set inst (java.util.Calendar/YEAR) 2020)
-      (.set inst (java.util.Calendar/MONTH) 4)
-      (.set inst (java.util.Calendar/DAY_OF_MONTH) 25)
-      (migrate-day tmp-dir inst)
+        [cal-inst (java.util.Calendar/getInstance)]
+      (.set cal-inst (java.util.Calendar/YEAR) 2020)
+      (.set cal-inst (java.util.Calendar/MONTH) 4)
+      (.set cal-inst (java.util.Calendar/DAY_OF_MONTH) 25)
+      (migrate-day tmp-dir cal-inst)
       (cmp-dirs
        (clojure.java.io/file (clojure.java.io/resource "test/expected-may"))
        (clojure.java.io/file (str tmp-dir "/may"))))))
@@ -73,11 +81,11 @@
   (testing
       "migrate-month"
     (let
-        [inst (java.util.Calendar/getInstance)]
-      (.set inst (java.util.Calendar/YEAR) 2020)
-      (.set inst (java.util.Calendar/MONTH) 5)
-      (.set inst (java.util.Calendar/DAY_OF_MONTH) 1)
-      (migrate-month tmp-dir inst)
+        [cal-inst (java.util.Calendar/getInstance)]
+      (.set cal-inst (java.util.Calendar/YEAR) 2020)
+      (.set cal-inst (java.util.Calendar/MONTH) 5)
+      (.set cal-inst (java.util.Calendar/DAY_OF_MONTH) 1)
+      (migrate-month tmp-dir cal-inst)
       (cmp-dirs
        (clojure.java.io/file (clojure.java.io/resource "test/expected-jun"))
        (clojure.java.io/file (str tmp-dir "/jun"))))))
