@@ -11,13 +11,13 @@ See the test data in `resources/test` for concrete examples of notes and the exp
 ## Notes
 
 Each note begins with a single character, followed by whitespace, then the note itself. Notes may be indented using whitespace as needed. The leading character may be any of the following:
-* '-': A standard note
-* '?': A question
-* '*': A task
-* 'x': A completed task
-* '~': A task that no longer needs to be completed, or is invalid
-* '>': A task that has been postponed, and moved to a later note
-* '<': A task that has been moved to a global task list (ex. monthly tasks, or a more general list of long-term goals)
+* `-`: A standard note
+* `?`: A question
+* `*`: A task
+* `x`: A completed task
+* `~`: A task that no longer needs to be completed, or is invalid
+* `>`: A task that has been postponed, and moved to a later note
+* `<`: A task that has been moved to a global task list (ex. monthly tasks, or a more general list of long-term goals)
 
 ## Build
 
