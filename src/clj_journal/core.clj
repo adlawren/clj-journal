@@ -184,13 +184,15 @@
         (recur (rest note-files))))))
 
 (defn migrate-day [path cal-inst]
-  (let [month
+  (let [year
+        (year cal-inst)
+        month
         (month-name cal-inst)
         day
         (day cal-inst)
         target-file
         (clojure.java.io/file
-         (str path "/" month "/" month day ".note"))]
+         (str path "/" year "/" month "/" month day ".note"))]
     (if
         (.exists target-file)
       (println (str "Error: " (.getPath target-file) " already exists"))
@@ -202,13 +204,13 @@
             (re-find
              (re-pattern (str month "[0-9]+.note$"))
              (.getPath f)))))
-        (note-files (str path "/" month)))
+        (note-files (str path "/" year "/" month)))
        target-file))))
 
 (defn create-calendar-file [path cal-inst]
   (spit
    (clojure.java.io/file
-    (str path "/" (month-name cal-inst) "/calendar.txt"))
+    (str path "/" (year cal-inst) "/" (month-name cal-inst) "/calendar.txt"))
    (str
     (clojure.string/join
      \newline
@@ -229,39 +231,40 @@
             [new-inst (.clone cal-inst)]
           (.add new-inst (java.util.Calendar/MONTH) -1)
           new-inst)
+        prev-year
+        (year prev-month-inst)
+        current-year
+        (year cal-inst)
         prev-month
         (month-name prev-month-inst)
         current-month
         (month-name cal-inst)
-        month-dir
-        (clojure.java.io/file (str path "/" current-month))
+        target-dir
+        (clojure.java.io/file (str path "/" current-year "/" current-month))
         target-file
         (clojure.java.io/file
-         (str path "/" current-month "/tasks.note"))]
+         (str path "/" current-year "/" current-month "/tasks.note"))]
     (if
-        (.exists month-dir)
-      (println (str "Error: " (.getPath month-dir) " already exists"))
+        (.exists target-dir)
+      (println (str "Error: " (.getPath target-dir) " already exists"))
       (do
-        (.mkdir month-dir)
+        (.mkdirs target-dir)
         (create-calendar-file path cal-inst)
-        (migrate (note-files (str path "/" prev-month)) target-file)))))
+        (migrate
+         (note-files (str path "/" prev-year "/" prev-month)) target-file)))))
 
 (def cli-options
   [["-m" "--migrate-day"] ["-M" "--migrate-month"] ["-h" "--help"]])
 
 (def base-dir (str (System/getProperty "user.dir") "/notes")) ;; cwd
 
-;; TODO: test the situation when migrating from (for example) Dec 2019 -> Jan 2020, it might look for the Dec notes in the 2020 directory..
 (defn -main [& args]
   (let [opts (clojure.tools.cli/parse-opts args cli-options)]
-    (let [cal-inst
-          (java.util.Calendar/getInstance)
-          target-dir
-          (str base-dir "/" (year cal-inst))]
+    (let [cal-inst (java.util.Calendar/getInstance)]
       (cond
         (:help opts)
         (println "Use '-m' or '--migrate-day' to run a daily migration, '-M' or '--migrate-month' to run a monthly migration")
         (:migrate-day opts)
-        (migrate-day target-dir cal-inst)
+        (migrate-day base-dir cal-inst)
         (:migrate-month opts)
-        (migrate-month target-dir cal-inst)))))
+        (migrate-month base-dir cal-inst)))))

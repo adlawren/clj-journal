@@ -58,10 +58,10 @@
         [tmp-dir
          (str "/tmp/clj-journal/test/" (.getTime (java.util.Date.)))]
       (println (str "Using tmp dir: " tmp-dir))
-      (.mkdirs (clojure.java.io/file tmp-dir))
+      (.mkdirs (clojure.java.io/file (str tmp-dir "/2019")))
       (copy-dir
-       (clojure.java.io/file (clojure.java.io/resource "test/may"))
-       (clojure.java.io/file (str tmp-dir "/may")))
+       (clojure.java.io/file (clojure.java.io/resource "test/dec"))
+       (clojure.java.io/file (str tmp-dir "/2019/dec")))
       (f))))
 
 (deftest migrate-day-test
@@ -69,13 +69,13 @@
       "migrate-day"
     (let
         [cal-inst (java.util.Calendar/getInstance)]
-      (.set cal-inst (java.util.Calendar/YEAR) 2020)
-      (.set cal-inst (java.util.Calendar/MONTH) 4)
+      (.set cal-inst (java.util.Calendar/YEAR) 2019)
+      (.set cal-inst (java.util.Calendar/MONTH) 11)
       (.set cal-inst (java.util.Calendar/DAY_OF_MONTH) 25)
       (migrate-day tmp-dir cal-inst)
       (cmp-dirs
-       (clojure.java.io/file (clojure.java.io/resource "test/expected-may"))
-       (clojure.java.io/file (str tmp-dir "/may"))))))
+       (clojure.java.io/file (clojure.java.io/resource "test/expected-dec"))
+       (clojure.java.io/file (str tmp-dir "/2019/dec"))))))
 
 (deftest migrate-month-test
   (testing
@@ -83,9 +83,9 @@
     (let
         [cal-inst (java.util.Calendar/getInstance)]
       (.set cal-inst (java.util.Calendar/YEAR) 2020)
-      (.set cal-inst (java.util.Calendar/MONTH) 5)
+      (.set cal-inst (java.util.Calendar/MONTH) 0)
       (.set cal-inst (java.util.Calendar/DAY_OF_MONTH) 1)
       (migrate-month tmp-dir cal-inst)
       (cmp-dirs
-       (clojure.java.io/file (clojure.java.io/resource "test/expected-jun"))
-       (clojure.java.io/file (str tmp-dir "/jun"))))))
+       (clojure.java.io/file (clojure.java.io/resource "test/expected-jan"))
+       (clojure.java.io/file (str tmp-dir "/2020/jan"))))))
