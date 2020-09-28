@@ -16,7 +16,7 @@ cd build
 
 # @todo: use the correct version
 NAME=app-0.1.0-SNAPSHOT-standalone
-docker run -it \
+sudo docker run -it \
         --rm \
         -v $HOME:$HOME \
         -w `pwd` \

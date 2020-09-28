@@ -74,7 +74,8 @@
                   (re-pattern
                    (str leading-whitespace-regex-str bullet-regex-str))
                   bullet))
-                1) bullet)]
+                1)
+               bullet)]
           (if
               (> (count (filter (fn [c] (not (= c \space))) whitespace)) 0)
             (println
@@ -259,7 +260,7 @@
 (def base-dir (str (System/getProperty "user.dir") "/notes")) ;; cwd
 
 (defn -main [& args]
-  (let [opts (clojure.tools.cli/parse-opts args cli-options)]
+  (let [opts (:options (clojure.tools.cli/parse-opts args cli-options))]
     (let [cal-inst (java.util.Calendar/getInstance)]
       (cond
         (:help opts)
