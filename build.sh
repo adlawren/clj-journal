@@ -16,6 +16,8 @@ cd build
 
 # @todo: use the correct version
 NAME=app-0.1.0-SNAPSHOT-standalone
+
+echo "Password needed to run docker:"
 sudo docker run -it \
         --rm \
         -v $HOME:$HOME \
@@ -28,4 +30,4 @@ sudo docker run -it \
 mv ./$NAME ../clj-journal
 
 cd ../
-rm build -r
+rm -r build
