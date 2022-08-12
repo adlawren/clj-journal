@@ -21,12 +21,21 @@ Each note begins with a single character, followed by whitespace, then the note 
 
 ## Build
 
+On Linux:
+
 ```
 bash build.sh
+```
+
+On MacOS:
+
+```
+brew install openjdk wget
+sudo bash build-macos.sh
 ```
 
 ## Run
 
 ```
-./clj-journal
+java -jar target/app-0.1.0-SNAPSHOT-standalone.jar --help
 ```
