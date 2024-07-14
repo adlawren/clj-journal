@@ -1,4 +1,4 @@
-# clj-journal
+# bujo
 
 A digitized bullet journal
 
@@ -6,7 +6,7 @@ Expected directory structure (for example): `notes/2019/dec/*.note`
 
 Unfinished tasks in `.note` files can be automatically migrated. Use `-m` to migrate unfinished tasks from the files in the current month to a new file for the current day. Use `-M` to migrate unfinished tasks from the files in the previous month to a new `tasks.note` file for the current month
 
-See the test data in `resources/test` for concrete examples of notes and the expected directory structure
+See the test data in `lib/test` for concrete examples of notes and the expected directory structure
 
 ## Notes
 
@@ -19,23 +19,22 @@ Each note begins with a single character, followed by whitespace, then the note 
 * `>`: A task that has been postponed, and moved to a later note
 * `<`: A task that has been moved to a global task list (ex. monthly tasks, or a more general list of long-term goals)
 
-## Build
+## Setup
 
-On Linux:
-
-```
-bash build.sh
-```
-
-On MacOS:
+[Install Golang](https://go.dev/doc/install) and run the following:
 
 ```
-brew install openjdk wget
-sudo bash build-macos.sh
+go build ./cmd/bujo
 ```
 
-## Run
+To perform a daily migration, run the following:
 
 ```
-java -jar target/app-0.1.0-SNAPSHOT-standalone.jar --help
+./bujo -m
+```
+
+To perform a monthly migration, run the following:
+
+```
+./bujo -M
 ```
