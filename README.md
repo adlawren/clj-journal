@@ -38,3 +38,9 @@ To perform a monthly migration, run the following:
 ```
 ./bujo -M
 ```
+
+To run the tests, use the following:
+
+```
+go test ./...
+```
