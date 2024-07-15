@@ -2,6 +2,7 @@ package lib
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,8 +26,7 @@ func copyDir(t *testing.T, dir, dest string) error {
 			t.Fatalf("Failed to read file: %v", err)
 		}
 
-		err = os.WriteFile(filepath.Join(dest, filepath.Base(filePath)), fileContents, 0700)
-		if err != nil {
+		if err = os.WriteFile(filepath.Join(dest, filepath.Base(filePath)), fileContents, 0700); err != nil {
 			t.Fatalf("Failed to write file: %v", err)
 		}
 	}
@@ -117,13 +117,33 @@ func TestRunDailyMigration(t *testing.T) {
 
 	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
 
-	err := runDailyMigration(notesDir, dailyMigrationTime(t))
-	if err != nil {
+	if err := runDailyMigration(notesDir, dailyMigrationTime(t)); err != nil {
 		t.Fatalf("Failed to run daily migration: %v", err)
 	}
 
 	if !testFilesEqual(t, "./test/expected-dec", filepath.Join(notesDir, "2019", "dec")) {
 		t.Fatal("Migrated files do not match expected files")
+	}
+}
+
+func TestRunDailyMigrationReturnsErrorIfNotesDirectoryDoesNotExist(t *testing.T) {
+	if err := runDailyMigration("non-existent-dir", dailyMigrationTime(t)); !errors.Is(err, errNotesDirDoesNotExist) {
+		t.Fatalf("Unexpected error: %s", err)
+	}
+}
+
+func TestRunDailyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) {
+	notesDir := tempNotesDir(t)
+	t.Logf("Using temporary notes directory: %s", notesDir)
+
+	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
+
+	if err := os.WriteFile(filepath.Join(notesDir, "2019", "dec", "dec25.note"), []byte("- This is a test"), 0700); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+
+	if err := runDailyMigration(notesDir, dailyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
+		t.Fatalf("Unexpected error: %s", err)
 	}
 }
 
@@ -133,12 +153,32 @@ func TestRunMonthlyMigration(t *testing.T) {
 
 	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
 
-	err := runMonthlyMigration(notesDir, monthlyMigrationTime(t))
-	if err != nil {
+	if err := runMonthlyMigration(notesDir, monthlyMigrationTime(t)); err != nil {
 		t.Fatalf("Failed to run monthly migration: %v", err)
 	}
 
 	if !testFilesEqual(t, "./test/expected-jan", filepath.Join(notesDir, "2020", "jan")) {
 		t.Fatal("Migrated files do not match expected files")
+	}
+}
+
+func TestRunMonthlyMigrationReturnsErrorIfNotesDirectoryDoesNotExist(t *testing.T) {
+	if err := runMonthlyMigration("non-existent-dir", monthlyMigrationTime(t)); !errors.Is(err, errNotesDirDoesNotExist) {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func TestRunMonthlyMigrationReturnsErrorIfTargetDirectoryAlreadyExists(t *testing.T) {
+	notesDir := tempNotesDir(t)
+	t.Logf("Using temporary notes directory: %s", notesDir)
+
+	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
+
+	if err := os.MkdirAll(filepath.Join(notesDir, "2020", "jan"), 0700); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+
+	if err := runMonthlyMigration(notesDir, monthlyMigrationTime(t)); !errors.Is(err, errNextMonthDirExists) {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 }
