@@ -33,7 +33,7 @@ func nextNoteFile(currentTime time.Time) string {
 }
 
 func runDailyMigration(notesDir string, currentTime time.Time) error {
-	// Advance declarations before gotos
+	// Advance declarations before goto
 	var targetNoteFile string
 
 	if _, err := os.Stat(notesDir); err != nil && !os.IsNotExist(err) {
@@ -58,7 +58,7 @@ dailyMigration:
 }
 
 func runMonthlyMigration(notesDir string, currentTime time.Time) error {
-	// Advance declarations before gotos
+	// Advance declarations before goto
 	var targetMonthDir string
 
 	if _, err := os.Stat(notesDir); err != nil && !os.IsNotExist(err) {
