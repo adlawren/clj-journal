@@ -128,7 +128,7 @@ func TestRunDailyMigration(t *testing.T) {
 
 func TestRunDailyMigrationReturnsErrorIfNotesDirectoryDoesNotExist(t *testing.T) {
 	if err := runDailyMigration("non-existent-dir", dailyMigrationTime(t)); !errors.Is(err, errNotesDirDoesNotExist) {
-		t.Fatalf("Unexpected error: %s", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 }
 
@@ -143,7 +143,7 @@ func TestRunDailyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) {
 	}
 
 	if err := runDailyMigration(notesDir, dailyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
-		t.Fatalf("Unexpected error: %s", err)
+		t.Fatalf("Unexpected error: %v", err)
 	}
 }
 
@@ -168,7 +168,7 @@ func TestRunMonthlyMigrationReturnsErrorIfNotesDirectoryDoesNotExist(t *testing.
 	}
 }
 
-func TestRunMonthlyMigrationReturnsErrorIfTargetDirectoryAlreadyExists(t *testing.T) {
+func TestRunMonthlyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) {
 	notesDir := tempNotesDir(t)
 	t.Logf("Using temporary notes directory: %s", notesDir)
 
@@ -178,7 +178,11 @@ func TestRunMonthlyMigrationReturnsErrorIfTargetDirectoryAlreadyExists(t *testin
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	if err := runMonthlyMigration(notesDir, monthlyMigrationTime(t)); !errors.Is(err, errNextMonthDirExists) {
+	if err := os.WriteFile(filepath.Join(notesDir, "2020", "jan", "tasks.note"), []byte("- This is a test"), 0700); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
+
+	if err := runMonthlyMigration(notesDir, monthlyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
