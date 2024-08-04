@@ -58,12 +58,12 @@ func tempNotesDir(t *testing.T) string {
 		t.Fatalf("Failed to create temporary test directory: %v", err)
 	}
 
-	notesDir := filepath.Join(tempDir, "notes")
-	if err := os.Mkdir(notesDir, 0700); err != nil {
+	notesRootDir := filepath.Join(tempDir, "notes")
+	if err := os.Mkdir(notesRootDir, 0700); err != nil {
 		t.Fatalf("Failed to create temporary notes directory: %v", err)
 	}
 
-	return notesDir
+	return notesRootDir
 }
 
 func testFilesEqual(t *testing.T, dir1, dir2 string) bool {
@@ -112,16 +112,16 @@ func testFilesEqual(t *testing.T, dir1, dir2 string) bool {
 }
 
 func TestRunDailyMigration(t *testing.T) {
-	notesDir := tempNotesDir(t)
-	t.Logf("Using temporary notes directory: %s", notesDir)
+	notesRootDir := tempNotesDir(t)
+	t.Logf("Using temporary notes directory: %s", notesRootDir)
 
-	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
+	copyDir(t, "./test/dec", filepath.Join(notesRootDir, "2019", "dec"))
 
-	if err := runDailyMigration(notesDir, dailyMigrationTime(t)); err != nil {
+	if err := runDailyMigration(notesRootDir, dailyMigrationTime(t)); err != nil {
 		t.Fatalf("Failed to run daily migration: %v", err)
 	}
 
-	if !testFilesEqual(t, "./test/expected-dec", filepath.Join(notesDir, "2019", "dec")) {
+	if !testFilesEqual(t, "./test/expected-dec", filepath.Join(notesRootDir, "2019", "dec")) {
 		t.Fatal("Migrated files do not match expected files")
 	}
 }
@@ -133,31 +133,31 @@ func TestRunDailyMigrationReturnsErrorIfNotesDirectoryDoesNotExist(t *testing.T)
 }
 
 func TestRunDailyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) {
-	notesDir := tempNotesDir(t)
-	t.Logf("Using temporary notes directory: %s", notesDir)
+	notesRootDir := tempNotesDir(t)
+	t.Logf("Using temporary notes directory: %s", notesRootDir)
 
-	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
+	copyDir(t, "./test/dec", filepath.Join(notesRootDir, "2019", "dec"))
 
-	if err := os.WriteFile(filepath.Join(notesDir, "2019", "dec", "dec25.note"), []byte("- This is a test"), 0700); err != nil {
+	if err := os.WriteFile(filepath.Join(notesRootDir, "2019", "dec", "dec25.note"), []byte("- This is a test"), 0700); err != nil {
 		t.Fatalf("Failed to write file: %v", err)
 	}
 
-	if err := runDailyMigration(notesDir, dailyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
+	if err := runDailyMigration(notesRootDir, dailyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }
 
 func TestRunMonthlyMigration(t *testing.T) {
-	notesDir := tempNotesDir(t)
-	t.Logf("Using temporary notes directory: %s", notesDir)
+	notesRootDir := tempNotesDir(t)
+	t.Logf("Using temporary notes directory: %s", notesRootDir)
 
-	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
+	copyDir(t, "./test/dec", filepath.Join(notesRootDir, "2019", "dec"))
 
-	if err := runMonthlyMigration(notesDir, monthlyMigrationTime(t)); err != nil {
+	if err := runMonthlyMigration(notesRootDir, monthlyMigrationTime(t)); err != nil {
 		t.Fatalf("Failed to run monthly migration: %v", err)
 	}
 
-	if !testFilesEqual(t, "./test/expected-jan", filepath.Join(notesDir, "2020", "jan")) {
+	if !testFilesEqual(t, "./test/expected-jan", filepath.Join(notesRootDir, "2020", "jan")) {
 		t.Fatal("Migrated files do not match expected files")
 	}
 }
@@ -169,20 +169,20 @@ func TestRunMonthlyMigrationReturnsErrorIfNotesDirectoryDoesNotExist(t *testing.
 }
 
 func TestRunMonthlyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) {
-	notesDir := tempNotesDir(t)
-	t.Logf("Using temporary notes directory: %s", notesDir)
+	notesRootDir := tempNotesDir(t)
+	t.Logf("Using temporary notes directory: %s", notesRootDir)
 
-	copyDir(t, "./test/dec", filepath.Join(notesDir, "2019", "dec"))
+	copyDir(t, "./test/dec", filepath.Join(notesRootDir, "2019", "dec"))
 
-	if err := os.MkdirAll(filepath.Join(notesDir, "2020", "jan"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(notesRootDir, "2020", "jan"), 0700); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	if err := os.WriteFile(filepath.Join(notesDir, "2020", "jan", "tasks.note"), []byte("- This is a test"), 0700); err != nil {
+	if err := os.WriteFile(filepath.Join(notesRootDir, "2020", "jan", "tasks.note"), []byte("- This is a test"), 0700); err != nil {
 		t.Fatalf("Failed to write file: %v", err)
 	}
 
-	if err := runMonthlyMigration(notesDir, monthlyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
+	if err := runMonthlyMigration(notesRootDir, monthlyMigrationTime(t)); !errors.Is(err, errNextNoteFileExists) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 }

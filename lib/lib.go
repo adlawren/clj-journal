@@ -9,11 +9,16 @@ import (
 	"time"
 )
 
-var defaultNotesDir string = "./notes"
+var defaultNotesRootDir string = "./notes"
 var defaultTasksFile string = "tasks.note"
+var tmpNoteFile string = ".tmp.note"
 
 var errNotesDirDoesNotExist = errors.New("Notes directory does not exist")
 var errNextNoteFileExists = errors.New("Next note file already exists")
+
+func monthDir(month time.Month) string {
+	return monthPrefix(month)
+}
 
 func monthPrefix(month time.Month) string {
 	currentMonth := strings.ToLower(month.String())
@@ -24,21 +29,23 @@ func currentYearDir(currentTime time.Time) string {
 	return fmt.Sprintf("%d", currentTime.Year())
 }
 
+func previousYearDir(currentTime time.Time) string {
+	return fmt.Sprintf("%d", currentTime.Year() - 1)
+}
+
 func currentMonthDir(currentTime time.Time) string {
-	return monthPrefix(currentTime.Month())
+	return monthDir(currentTime.Month())
+}
+
+func previousMonthDir(currentTime time.Time) string {
+	return monthDir(currentTime.Month() - 1)
 }
 
 func nextNoteFile(currentTime time.Time) string {
 	return fmt.Sprintf("%s%d.note", monthPrefix(currentTime.Month()), currentTime.Day())
 }
 
-func runMigration(notesDir, newFilePath string, currentTime time.Time) error {
-	if _, err := os.Stat(notesDir); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("Failed to stat notes directory: %w", err)
-	} else if os.IsNotExist(err) {
-		return errNotesDirDoesNotExist
-	}
-
+func runMigration(notesDir, newFilePath string) error {
 	if _, err := os.Stat(newFilePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Failed to stat notes directory: %w", err)
 	} else if os.IsNotExist(err) {
@@ -65,26 +72,100 @@ createTargetDirectory:
 
 migration:
 
+	noteFilePattern := filepath.Join(notesDir, "*.note")
+	noteFilePaths, err := filepath.Glob(noteFilePattern)
+	if err != nil {
+		return fmt.Errorf("Failed to find note file paths: %w", err)
+	}
+
+	noteFileNoteTrees := make(map[string]NoteTree)
+	for _, noteFilePath := range(noteFilePaths) {
+		noteFileText, err := readFileText(noteFilePath)
+		if err != nil {
+			return fmt.Errorf("Failed to read note file: %w", err)
+		}
+
+		noteTree, err := ParseNoteTree(noteFileText)
+		if err != nil {
+			return fmt.Errorf("Failed to parse note tree: %w", err)
+		}
+
+		noteFileNoteTrees[noteFilePath] = noteTree
+	}
+
+	var newNoteTree NoteTree
+	for _, noteTree := range(noteFileNoteTrees) {
+		noteTreeCopy := noteTree.Copy()
+		if err := noteTreeCopy.FilterIncompleteTasks(); err != nil {
+			return fmt.Errorf("Failed to filter incomplete tasks: %w", err)
+		}
+
+		newNoteTree.Merge(noteTreeCopy)
+	}
+
+	if err = os.WriteFile(newFilePath, []byte(newNoteTree.String() + "\n"), 0700); err != nil {
+		return fmt.Errorf("Failed to write new note file: %w", err)
+	}
+
+	// Use temporary file + rename to ensure that note files are replaced atomically
+	tmpNoteFilePath := filepath.Join(notesDir, tmpNoteFile)
+	if err = os.RemoveAll(tmpNoteFilePath); err != nil { // Ensure that tmp notes file is removed if it exists
+		return fmt.Errorf("Failed to remove temporary notes file: %w", err)
+	}
+
+	for noteFilePath, noteTree := range(noteFileNoteTrees) {
+		if err := noteTree.MigrateAll(); err != nil {
+			return fmt.Errorf("Failed to migrate notes: %w", err)
+		}
+
+		if err = os.WriteFile(tmpNoteFilePath, []byte(noteTree.String() + "\n"), 0700); err != nil {
+			return fmt.Errorf("Failed to write new note file: %w", err)
+		}
+
+		if err = os.Rename(tmpNoteFilePath, noteFilePath); err != nil {
+			return fmt.Errorf("Failed to rename temporary note file: %w", err)
+		}
+	}
+
 	return nil
 }
 
-func runDailyMigration(notesDir string, currentTime time.Time) error {
-	targetMonthDir := filepath.Join(notesDir, currentYearDir(currentTime), currentMonthDir(currentTime))
+func runDailyMigration(notesRootDir string, currentTime time.Time) error {
+	if _, err := os.Stat(notesRootDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("Failed to stat notes directory: %w", err)
+	} else if os.IsNotExist(err) {
+		return errNotesDirDoesNotExist
+	}
+
+	targetMonthDir := filepath.Join(notesRootDir, currentYearDir(currentTime), currentMonthDir(currentTime))
 	targetNoteFile := filepath.Join(targetMonthDir, nextNoteFile(currentTime))
 
-	return runMigration(notesDir, targetNoteFile, currentTime) // TODO: Don't pass current time, pass directory names
+	return runMigration(targetMonthDir, targetNoteFile)
 }
 
-func runMonthlyMigration(notesDir string, currentTime time.Time) error {
-	targetMonthDir := filepath.Join(notesDir, currentYearDir(currentTime), currentMonthDir(currentTime))
+func runMonthlyMigration(notesRootDir string, currentTime time.Time) error {
+	if _, err := os.Stat(notesRootDir); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("Failed to stat notes directory: %w", err)
+	} else if os.IsNotExist(err) {
+		return errNotesDirDoesNotExist
+	}
+
+	targetMonthDir := filepath.Join(notesRootDir, currentYearDir(currentTime), currentMonthDir(currentTime))
 	targetNoteFile := filepath.Join(targetMonthDir, defaultTasksFile)
 
-	return runMigration(notesDir, targetNoteFile, currentTime)
+	var prevNotesDir string
+	if currentTime.Month() == time.January {
+		prevNotesDir = filepath.Join(notesRootDir, previousYearDir(currentTime), monthDir(time.December))
+	} else {
+		prevNotesDir = filepath.Join(notesRootDir, currentYearDir(currentTime), previousMonthDir(currentTime))
+	}
+
+	return runMigration(prevNotesDir, targetNoteFile)
 }
 
 func RunDailyMigration() error {
 	currentTime := time.Now()
-	if err := runDailyMigration(defaultNotesDir, currentTime); err != nil {
+	if err := runDailyMigration(defaultNotesRootDir, currentTime); err != nil {
 		return fmt.Errorf("Error running daily migration: %w", err)
 	}
 
@@ -93,7 +174,7 @@ func RunDailyMigration() error {
 
 func RunMonthlyMigration() error {
 	currentTime := time.Now()
-	if err := runMonthlyMigration(defaultNotesDir, currentTime); err != nil {
+	if err := runMonthlyMigration(defaultNotesRootDir, currentTime); err != nil {
 		return fmt.Errorf("Error running monthly migration: %w", err)
 	}
 
