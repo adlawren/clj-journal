@@ -80,6 +80,8 @@ func testFilesEqual(t *testing.T, dir1, dir2 string) bool {
 	}
 
 	if len(dir1Paths) != len(dir2Paths) {
+		t.Logf("File counts in directories do not match: %d != %d", len(dir1Paths), len(dir2Paths))
+
 		return false
 	}
 
@@ -91,6 +93,8 @@ func testFilesEqual(t *testing.T, dir1, dir2 string) bool {
 		dir1PathBasename := filepath.Base(dir1Path)
 		dir2PathBasename := filepath.Base(dir2Path)
 		if dir1PathBasename != dir2PathBasename {
+			t.Logf("Filenames do not match: %s != %s", dir1PathBasename, dir2PathBasename)
+
 			return false
 		}
 
@@ -104,6 +108,8 @@ func testFilesEqual(t *testing.T, dir1, dir2 string) bool {
 		}
 
 		if !bytes.Equal(dir1FileContents, dir2FileContents) {
+			t.Logf("Contents in %s do not match %s", dir1Path, dir2Path)
+
 			return false
 		}
 	}

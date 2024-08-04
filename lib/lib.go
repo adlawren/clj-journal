@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -45,7 +46,7 @@ func nextNoteFile(currentTime time.Time) string {
 	return fmt.Sprintf("%s%d.note", monthPrefix(currentTime.Month()), currentTime.Day())
 }
 
-func runMigration(notesDir, newFilePath string) error {
+func runMigration(notesDir, newFilePath string, ignoredFilePaths []string) error {
 	if _, err := os.Stat(newFilePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Failed to stat notes directory: %w", err)
 	} else if os.IsNotExist(err) {
@@ -65,7 +66,6 @@ createTargetDirectory:
 		goto migration
 	}
 
-	// TODO: Fix permissions, this is required for the tests in the tmp directory, but it's not ideal for everyday use
 	if err := os.MkdirAll(targetMonthDir, 0755); err != nil {
 		return fmt.Errorf("Failed to create directory for new note file: %w", err)
 	}
@@ -73,9 +73,18 @@ createTargetDirectory:
 migration:
 
 	noteFilePattern := filepath.Join(notesDir, "*.note")
-	noteFilePaths, err := filepath.Glob(noteFilePattern)
+	allNoteFilePaths, err := filepath.Glob(noteFilePattern)
 	if err != nil {
 		return fmt.Errorf("Failed to find note file paths: %w", err)
+	}
+
+	var noteFilePaths []string
+	for _, noteFilePath := range(allNoteFilePaths) {
+		if slices.ContainsFunc(ignoredFilePaths, func(ignoredFilePath string) bool { return filepath.Base(noteFilePath) == ignoredFilePath }) {
+			continue
+		}
+
+		noteFilePaths = append(noteFilePaths, noteFilePath)
 	}
 
 	noteFileNoteTrees := make(map[string]NoteTree)
@@ -94,7 +103,8 @@ migration:
 	}
 
 	var newNoteTree NoteTree
-	for _, noteTree := range(noteFileNoteTrees) {
+	for _, noteFilePath := range(noteFilePaths) {
+		noteTree := noteFileNoteTrees[noteFilePath]
 		noteTreeCopy := noteTree.Copy()
 		if err := noteTreeCopy.FilterIncompleteTasks(); err != nil {
 			return fmt.Errorf("Failed to filter incomplete tasks: %w", err)
@@ -113,7 +123,8 @@ migration:
 		return fmt.Errorf("Failed to remove temporary notes file: %w", err)
 	}
 
-	for noteFilePath, noteTree := range(noteFileNoteTrees) {
+	for _, noteFilePath := range(noteFilePaths) {
+		noteTree := noteFileNoteTrees[noteFilePath]
 		if err := noteTree.MigrateAll(); err != nil {
 			return fmt.Errorf("Failed to migrate notes: %w", err)
 		}
@@ -140,7 +151,9 @@ func runDailyMigration(notesRootDir string, currentTime time.Time) error {
 	targetMonthDir := filepath.Join(notesRootDir, currentYearDir(currentTime), currentMonthDir(currentTime))
 	targetNoteFile := filepath.Join(targetMonthDir, nextNoteFile(currentTime))
 
-	return runMigration(targetMonthDir, targetNoteFile)
+	ignoredFilePaths := []string{defaultTasksFile}
+
+	return runMigration(targetMonthDir, targetNoteFile, ignoredFilePaths)
 }
 
 func runMonthlyMigration(notesRootDir string, currentTime time.Time) error {
@@ -160,7 +173,9 @@ func runMonthlyMigration(notesRootDir string, currentTime time.Time) error {
 		prevNotesDir = filepath.Join(notesRootDir, currentYearDir(currentTime), previousMonthDir(currentTime))
 	}
 
-	return runMigration(prevNotesDir, targetNoteFile)
+	ignoredFilePaths := []string{}
+
+	return runMigration(prevNotesDir, targetNoteFile, ignoredFilePaths)
 }
 
 func RunDailyMigration() error {
