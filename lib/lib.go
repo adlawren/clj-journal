@@ -66,7 +66,7 @@ createTargetDirectory:
 	}
 
 	// TODO: Fix permissions, this is required for the tests in the tmp directory, but it's not ideal for everyday use
-	if err := os.MkdirAll(targetMonthDir, 0700); err != nil {
+	if err := os.MkdirAll(targetMonthDir, 0755); err != nil {
 		return fmt.Errorf("Failed to create directory for new note file: %w", err)
 	}
 
@@ -103,7 +103,7 @@ migration:
 		newNoteTree.Merge(noteTreeCopy)
 	}
 
-	if err = os.WriteFile(newFilePath, []byte(newNoteTree.String() + "\n"), 0700); err != nil {
+	if err = os.WriteFile(newFilePath, []byte(newNoteTree.String() + "\n"), 0644); err != nil {
 		return fmt.Errorf("Failed to write new note file: %w", err)
 	}
 
@@ -118,7 +118,7 @@ migration:
 			return fmt.Errorf("Failed to migrate notes: %w", err)
 		}
 
-		if err = os.WriteFile(tmpNoteFilePath, []byte(noteTree.String() + "\n"), 0700); err != nil {
+		if err = os.WriteFile(tmpNoteFilePath, []byte(noteTree.String() + "\n"), 0644); err != nil {
 			return fmt.Errorf("Failed to write new note file: %w", err)
 		}
 

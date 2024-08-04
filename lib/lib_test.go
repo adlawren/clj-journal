@@ -10,7 +10,7 @@ import (
 )
 
 func copyDir(t *testing.T, dir, dest string) error {
-	if err := os.MkdirAll(dest, 0700); err != nil {
+	if err := os.MkdirAll(dest, 0755); err != nil {
 		t.Fatalf("Failed copy %s directory to %s: %v", dir, dest, err)
 	}
 
@@ -26,7 +26,7 @@ func copyDir(t *testing.T, dir, dest string) error {
 			t.Fatalf("Failed to read file: %v", err)
 		}
 
-		if err = os.WriteFile(filepath.Join(dest, filepath.Base(filePath)), fileContents, 0700); err != nil {
+		if err = os.WriteFile(filepath.Join(dest, filepath.Base(filePath)), fileContents, 0644); err != nil {
 			t.Fatalf("Failed to write file: %v", err)
 		}
 	}
@@ -59,7 +59,7 @@ func tempNotesDir(t *testing.T) string {
 	}
 
 	notesRootDir := filepath.Join(tempDir, "notes")
-	if err := os.Mkdir(notesRootDir, 0700); err != nil {
+	if err := os.Mkdir(notesRootDir, 0755); err != nil {
 		t.Fatalf("Failed to create temporary notes directory: %v", err)
 	}
 
@@ -138,7 +138,7 @@ func TestRunDailyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) {
 
 	copyDir(t, "./test/dec", filepath.Join(notesRootDir, "2019", "dec"))
 
-	if err := os.WriteFile(filepath.Join(notesRootDir, "2019", "dec", "dec25.note"), []byte("- This is a test"), 0700); err != nil {
+	if err := os.WriteFile(filepath.Join(notesRootDir, "2019", "dec", "dec25.note"), []byte("- This is a test"), 0644); err != nil {
 		t.Fatalf("Failed to write file: %v", err)
 	}
 
@@ -174,11 +174,11 @@ func TestRunMonthlyMigrationReturnsErrorIfTargetFileAlreadyExists(t *testing.T) 
 
 	copyDir(t, "./test/dec", filepath.Join(notesRootDir, "2019", "dec"))
 
-	if err := os.MkdirAll(filepath.Join(notesRootDir, "2020", "jan"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(notesRootDir, "2020", "jan"), 0755); err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	if err := os.WriteFile(filepath.Join(notesRootDir, "2020", "jan", "tasks.note"), []byte("- This is a test"), 0700); err != nil {
+	if err := os.WriteFile(filepath.Join(notesRootDir, "2020", "jan", "tasks.note"), []byte("- This is a test"), 0644); err != nil {
 		t.Fatalf("Failed to write file: %v", err)
 	}
 
